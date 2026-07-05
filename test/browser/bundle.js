@@ -251,21 +251,109 @@
   var require_seedwords_spec = __commonJS({
     "test/specs/seedwords.spec.js"(exports, module) {
       "use strict";
+      var TOTAL_WORDS = 65536;
+      async function ready(seedwords2) {
+        const ok = await seedwords2.initialize();
+        if (ok !== true) throw new Error("initialize() did not return true");
+      }
+      var tests = [
+        {
+          name: "initialize() succeeds and is idempotent",
+          async run(seedwords2, assert) {
+            const first = await seedwords2.initialize();
+            assert.equal(first, true, "first initialize() should return true");
+            const second = await seedwords2.initialize();
+            assert.equal(second, true, "second initialize() should also return true");
+          }
+        },
+        {
+          name: "getAllSeedWords() returns 65536 unique words",
+          async run(seedwords2, assert) {
+            await ready(seedwords2);
+            const all = seedwords2.getAllSeedWords();
+            assert.ok(Array.isArray(all), "getAllSeedWords() should return an array");
+            assert.equal(all.length, TOTAL_WORDS, "expected 65536 seed words");
+            assert.equal(new Set(all).size, TOTAL_WORDS, "all seed words should be unique");
+            all.push("__mutation__");
+            assert.equal(seedwords2.getAllSeedWords().length, TOTAL_WORDS, "getAllSeedWords() must return a fresh copy");
+          }
+        },
+        {
+          name: "doesSeedWordExist() is correct and case-insensitive",
+          async run(seedwords2, assert) {
+            await ready(seedwords2);
+            const all = seedwords2.getAllSeedWords();
+            const known = all[0];
+            assert.equal(seedwords2.doesSeedWordExist(known), true, "a known word should exist");
+            assert.equal(seedwords2.doesSeedWordExist(known.toUpperCase()), true, "lookup should be case-insensitive");
+            assert.equal(seedwords2.doesSeedWordExist("zzzznotarealseedword"), false, "a bogus word should not exist");
+          }
+        },
+        {
+          name: "getWordListFromSeedArray() maps bytes to words deterministically",
+          async run(seedwords2, assert) {
+            await ready(seedwords2);
+            const seedArray2 = [0, 0, 0, 1, 255, 255];
+            const words = seedwords2.getWordListFromSeedArray(seedArray2);
+            assert.ok(Array.isArray(words) && words.length === 3, "expected 3 words from a 6-byte array");
+            for (const w of words) {
+              assert.equal(seedwords2.doesSeedWordExist(w), true, "each produced word should be a valid seed word");
+            }
+            const single = seedwords2.getWordListFromSeedArray([0, 0]);
+            assert.ok(Array.isArray(single) && single.length === 1, "a 2-byte array should yield one word");
+          }
+        },
+        {
+          name: "getWordListFromSeedArray() rejects invalid input",
+          async run(seedwords2, assert) {
+            await ready(seedwords2);
+            assert.equal(seedwords2.getWordListFromSeedArray([]), null, "empty array should return null");
+            assert.equal(seedwords2.getWordListFromSeedArray([0]), null, "array shorter than 2 should return null");
+            assert.equal(seedwords2.getWordListFromSeedArray([0, 0, 0]), null, "odd-length array should return null");
+            assert.equal(seedwords2.getWordListFromSeedArray([0, 300]), null, "out-of-range byte should return null");
+          }
+        },
+        {
+          name: "getSeedArrayFromWordList() reverses getWordListFromSeedArray()",
+          async run(seedwords2, assert) {
+            await ready(seedwords2);
+            const seedArray2 = [0, 0, 0, 1, 255, 255];
+            const words = seedwords2.getWordListFromSeedArray(seedArray2);
+            const back = seedwords2.getSeedArrayFromWordList(words);
+            assert.deepEqual(back, seedArray2, "seed array round-trip should match");
+          }
+        },
+        {
+          name: "getSeedArrayFromWordList() is case-insensitive and rejects unknown words",
+          async run(seedwords2, assert) {
+            await ready(seedwords2);
+            const known = seedwords2.getAllSeedWords()[0];
+            const lower = seedwords2.getSeedArrayFromWordList([known]);
+            const upper = seedwords2.getSeedArrayFromWordList([known.toUpperCase()]);
+            assert.ok(Array.isArray(lower) && lower.length === 2, "one word should yield two bytes");
+            assert.deepEqual(upper, lower, "word lookup should be case-insensitive");
+            assert.equal(seedwords2.getSeedArrayFromWordList(["zzzznotarealseedword"]), null, "unknown word should return null");
+          }
+        },
+        {
+          name: "byte<->word round-trips exactly across a deterministic sample of the space",
+          async run(seedwords2, assert) {
+            await ready(seedwords2);
+            for (let a = 0; a <= 255; a += 37) {
+              for (let b = 0; b <= 255; b += 37) {
+                const seedArray2 = [a, b];
+                const words = seedwords2.getWordListFromSeedArray(seedArray2);
+                assert.ok(words && words.length === 1, `expected a word for [${a}, ${b}]`);
+                const back = seedwords2.getSeedArrayFromWordList(words);
+                assert.deepEqual(back, seedArray2, `round-trip should preserve [${a}, ${b}]`);
+              }
+            }
+          }
+        }
+      ];
       module.exports = {
         name: "seedwords",
-        async run(seedwords2, assert) {
-          const ok = await seedwords2.initialize();
-          assert.equal(ok, true, "initialize() should return true");
-          const all = seedwords2.getAllSeedWords();
-          assert.equal(all.length, 65536, "expected 65536 seed words");
-          assert.equal(seedwords2.doesSeedWordExist(all[0]), true, "first word should exist");
-          assert.equal(seedwords2.doesSeedWordExist("zzzznotarealseedword"), false, "bogus word should not exist");
-          const seedArray2 = [0, 0, 0, 1, 255, 255];
-          const words = seedwords2.getWordListFromSeedArray(seedArray2);
-          assert.ok(Array.isArray(words) && words.length === 3, "expected 3 words from seed array");
-          const back = seedwords2.getSeedArrayFromWordList(words);
-          assert.deepEqual(back, seedArray2, "seed array round-trip should match");
-        }
+        tests
       };
     }
   });
@@ -273,23 +361,26 @@
   // test/browser/entry.js
   var seedwords = require_seedwords();
   var makeAssert = require_assert();
-  var spec = require_seedwords_spec();
-  async function runSpec(spec2, results) {
+  var suite = require_seedwords_spec();
+  async function runTest(suiteName, t, results) {
     const assert = makeAssert();
     const started = Date.now();
+    const name = `${suiteName}: ${t.name}`;
     try {
-      await spec2.run(seedwords, assert);
-      results.specs.push({ name: spec2.name, ok: true, checks: assert.count, ms: Date.now() - started });
+      await t.run(seedwords, assert);
+      results.specs.push({ name, ok: true, checks: assert.count, ms: Date.now() - started });
       results.passed++;
     } catch (e) {
-      results.specs.push({ name: spec2.name, ok: false, checks: assert.count, error: e && e.message || String(e), ms: Date.now() - started });
+      results.specs.push({ name, ok: false, checks: assert.count, error: e && e.message || String(e), ms: Date.now() - started });
       results.failed++;
     }
   }
   async function main() {
     const results = { passed: 0, failed: 0, specs: [] };
     try {
-      await runSpec(spec, results);
+      for (const t of suite.tests) {
+        await runTest(suite.name, t, results);
+      }
     } catch (e) {
       results.failed++;
       results.specs.push({ name: "harness", ok: false, error: e && e.stack || String(e) });

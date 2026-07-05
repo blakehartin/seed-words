@@ -8,17 +8,18 @@
 
 const seedwords = require('../../seedwords.js');
 const makeAssert = require('../specs/assert');
-const spec = require('../specs/seedwords.spec');
+const suite = require('../specs/seedwords.spec');
 
-async function runSpec(spec, results) {
+async function runTest(suiteName, t, results) {
     const assert = makeAssert();
     const started = Date.now();
+    const name = `${suiteName}: ${t.name}`;
     try {
-        await spec.run(seedwords, assert);
-        results.specs.push({ name: spec.name, ok: true, checks: assert.count, ms: Date.now() - started });
+        await t.run(seedwords, assert);
+        results.specs.push({ name, ok: true, checks: assert.count, ms: Date.now() - started });
         results.passed++;
     } catch (e) {
-        results.specs.push({ name: spec.name, ok: false, checks: assert.count, error: (e && e.message) || String(e), ms: Date.now() - started });
+        results.specs.push({ name, ok: false, checks: assert.count, error: (e && e.message) || String(e), ms: Date.now() - started });
         results.failed++;
     }
 }
@@ -26,7 +27,9 @@ async function runSpec(spec, results) {
 async function main() {
     const results = { passed: 0, failed: 0, specs: [] };
     try {
-        await runSpec(spec, results);
+        for (const t of suite.tests) {
+            await runTest(suite.name, t, results);
+        }
     } catch (e) {
         results.failed++;
         results.specs.push({ name: 'harness', ok: false, error: (e && e.stack) || String(e) });
