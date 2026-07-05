@@ -82,7 +82,7 @@ async function initializeSeedWordsFromString(seedWordsRaw) {
     var seedMapHashMessage = "";
 
     var lines = filedata.split("\n");
-    for (i in lines) {
+    for (var i in lines) {
         var columns = lines[i].split(",");
         if (columns.length != 3) {
             continue;
@@ -112,8 +112,8 @@ async function initializeSeedWordsFromString(seedWordsRaw) {
     }
 
     //verify
-    for (i = 0; i <= 255; i++) {
-        for (j = 0; j <= 255; j++) {
+    for (var i = 0; i <= 255; i++) {
+        for (var j = 0; j <= 255; j++) {
             var testKey = getSeedKey(i, j);
             if (SEED_REVERSE_MAP.has(testKey) === false) {
                 return false;
@@ -124,7 +124,7 @@ async function initializeSeedWordsFromString(seedWordsRaw) {
     //Load Friendly Array
     SEED_FRIENDLY_INDEX_REVERSE_ARRAY = new Array(SEED_LENGTH / 2);
     var count = 0;
-    for (i = 0; i < SEED_LENGTH / 2; i++) {
+    for (var i = 0; i < SEED_LENGTH / 2; i++) {
         SEED_FRIENDLY_INDEX_REVERSE_ARRAY[i] = [count, count + 1];
         count = count + 2;
     }
@@ -181,7 +181,7 @@ function getWordListFromSeedArray(seedArray) {
 
     var seedWordArray = new Array(seedArray.length / 2);
     var wordIndex = 0;
-    for (i = 0; i < seedArray.length; i = i + 2) {
+    for (var i = 0; i < seedArray.length; i = i + 2) {
         var key = getSeedKey(seedArray[i], seedArray[i + 1]);
         if (SEED_REVERSE_MAP.has(key) === false) {
             return null;
@@ -236,7 +236,7 @@ function getSeedArrayFromWordList(wordList) {
 
     var seedIndexArray = new Array(wordList.length * 2);
     var seedIndex = 0;
-    for (i = 0; i < wordList.length; i = i + 1) {
+    for (var i = 0; i < wordList.length; i = i + 1) {
         var byteArray = getIndicesFromFriendlySeed(wordList[i]);
         if (byteArray == null) {
             return null;

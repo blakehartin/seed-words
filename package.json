@@ -1,6 +1,6 @@
 {
   "name": "seed-words",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Seed Words JS SDK",
   "main": "seedwords.js",
   "scripts": {
