@@ -1,8 +1,13 @@
 {
   "name": "seed-words",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Seed Words JS SDK",
   "main": "seedwords.js",
+  "types": "dist/seedwords.d.ts",
+  "files": [
+    "seedwords.js",
+    "dist/seedwords.d.ts"
+  ],
   "scripts": {
     "test": "node --test test/seedwords.test.js",
     "test:browser": "node test/browser/build-browser-tests.js && node test/browser/run-browser.js",
