@@ -1,10 +1,12 @@
 {
   "name": "seed-words",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Seed Words JS SDK",
   "main": "seedwords.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test test/seedwords.test.js",
+    "test:browser": "node test/browser/build-browser-tests.js && node test/browser/run-browser.js",
+    "test:all": "npm test && npm run test:browser",
     "build": "npx -p typescript tsc seedwords.js --declaration --allowJs --emitDeclarationOnly --outDir dist && jsdoc2md seedwords.js >README.md"
   },
   "repository": {
@@ -23,5 +25,9 @@
   "bugs": {
     "url": "https://github.com/quantumcoinproject/seed-words/issues"
   },
-  "homepage": "https://github.com/quantumcoinproject/seed-words#readme"
+  "homepage": "https://github.com/quantumcoinproject/seed-words#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "esbuild": "^0.28.1"
+  }
 }

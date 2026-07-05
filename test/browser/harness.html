@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>seed-words browser specs</title>
+</head>
+<body>
+    <pre id="out">running…</pre>
+    <script src="./bundle.js"></script>
+    <script>
+        (function poll() {
+            if (window.__specResults && window.__specResults.done) {
+                document.getElementById('out').textContent = JSON.stringify(window.__specResults, null, 2);
+                return;
+            }
+            setTimeout(poll, 100);
+        })();
+    </script>
+</body>
+</html>
